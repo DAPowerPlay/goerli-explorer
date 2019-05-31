@@ -1,4 +1,4 @@
-const CircleList = require('./circle-list')
+const CircleList = require('./utils/circle-list')
 
 class TransactionsCache extends CircleList {
 

@@ -1,160 +1,99 @@
-var express = require('express');
-var router = express.Router();
+var express = require('express')
+var router = express.Router()
 
-var async = require('async');
-var Web3 = require('web3');
+var async = require('async')
+var Web3 = require('web3')
+const config = require('../config')
+const parity = config.providers.parity
 
-router.get('/:account', function(req, res, next) {
-  
+const accountTxCache = require('../utils/cache/account-tx')
+const VerifiedContractsDb = require('../utils/db/contracts')
 
-  if (req.params.account.length === 40 )
-    req.params.account = '0x' + req.params.account;
+router.get('/:account', async (req, res) => {
+
+  if (req.params.account.length === 40)
+    req.params.account = '0x' + req.params.account
 
   // not a valid account
-  if(req.params.account.length != 42) {
-    var err = new Error ('Not valid')
+  if (req.params.account.length !== 42) {
+    var err = new Error('Not valid')
     err.status = 400
-    res.render('error',{message : "Account format not valid.", error : err});
+    res.render('error', {message: 'Account format not valid.', error: err})
     return
   }
 
+  const currentPage = parseInt(req.query.page) || 1;
 
-  var config = req.app.get('config');  
-  var web3 = new Web3();
-  web3.setProvider(config.provider);
-  
-  var db = req.app.get('db');
-  
-  var data = {};
-  
-  async.waterfall([
-    function(callback) {
-      web3.eth.getBlock("latest", false, function(err, result) {
-        callback(err, result);
-      });
-    }, function(lastBlock, callback) {
-      data.lastBlock = lastBlock.number;
-      //limits the from block to -1000 blocks ago if block count is greater than 1000
-      if (data.lastBlock > 0x3E8) {
-        data.fromBlock = data.lastBlock - 0x3e8;
-      } else {
-        data.fromBlock = 0x00;
-      }
-      web3.eth.getBalance(req.params.account, function(err, balance) {
-        callback(err, balance);
-      });
-    }, function(balance, callback) {
-      data.balance = balance;
-      web3.eth.getCode(req.params.account, function(err, code) {
-        callback(err, code);
-      });
-    }, function(code, callback) {
-      data.code = code;
-      if (code !== "0x") {
-        data.isContract = true;
-      }
-      
-      db.get(req.params.account.toLowerCase(), function(err, value) {
-        callback(null, value);
-      });
-    }, function(source, callback) {
-      
-      if (source) {
-        data.source = JSON.parse(source);
-        
-        data.contractState = [];
-        if (!data.abi) {
-          return callback();
-        }
-        var abi = JSON.parse(data.source.abi);
-        var contract = web3.eth.contract(abi).at(req.params.account);
-        
-        
-        async.eachSeries(abi, function(item, eachCallback) {
-          if (item.type === "function" && item.inputs.length === 0 && item.constant) {
+  const db = req.app.get('db')
+
+  const account = {
+    address: req.params.account
+  }
+
+
+  const [balance, code, source, txCount, transactions] = await Promise.all([
+    parity.getBalance(account.address),
+    parity.getCode(account.address),
+    new VerifiedContractsDb(db).getContractSource(account.address),
+    accountTxCache.getTotalAccountTrasactions(account.address.toLowerCase()),
+    accountTxCache.getAccountTransactions(account.address.toLowerCase(), currentPage - 1)
+  ])
+
+  account.balance = balance
+
+  account.transactions = transactions
+  account.total = txCount
+
+  account.code = code
+  if (code !== '0x') {
+    account.isContract = true
+  }
+
+  if (source) {
+    account.source = JSON.parse(source)
+
+    account.contractState = []
+    if (account.source.abi) {
+      const web3 = new Web3()
+      web3.setProvider(config.provider)
+      const abi = account.source.abi
+      const contract = web3.eth.contract(abi).at(req.params.account)
+      await new Promise(resolve => {
+        async.eachSeries(abi, function (item, eachCallback) {
+          if (item.type === 'function' && item.inputs.length === 0 && item.constant) {
             try {
-              contract[item.name](function(err, result) {
-                data.contractState.push({ name: item.name, result: result });
-                eachCallback();
-              });
-            } catch(e) {
-              console.log(e);
-              eachCallback();
+              contract[item.name](function (err, result) {
+                account.contractState.push({name: item.name, result: result})
+                eachCallback()
+              })
+            } catch (e) {
+              console.log(e)
+              eachCallback()
             }
           } else {
-            eachCallback();
+            eachCallback()
           }
-        }, function(err) {
-          callback(err);
-        });
-        
-      } else {
-        callback();
-      }
-      
-      
-    }, function(callback) {
-      web3.trace.filter({ "fromBlock": "0x" + data.fromBlock.toString(16), "fromAddress": [ req.params.account ] }, function(err, traces) {
-        callback(err, traces);
-      });
-    }, function(tracesSent, callback) {
-      data.tracesSent = tracesSent;
-      web3.trace.filter({ "fromBlock": "0x" + data.fromBlock.toString(16), "toAddress": [ req.params.account ] }, function(err, traces) {
-        callback(err, traces);
-      });
+        }, function () {
+          resolve()
+        })
+      })
     }
-  ], function(err, tracesReceived) {
-    if (err) {
-      return next(err);
-    }
-    
-    data.address = req.params.account;
-    data.tracesReceived = tracesReceived;
-    
-    var blocks = {};
-    var rewardBlocks = {};
-    data.tracesSent.forEach(function (trace) {
-      const num = trace.blockNumber;
-      if (!blocks[num]) {
-        blocks[num] = [];
-      }
-      if (trace.type !== 'reward' || !rewardBlocks[num]) {
-        blocks[num].push(trace);
-        rewardBlocks[num] = trace.type === 'reward' || rewardBlocks[num];
-      }
-    });
-    data.tracesReceived.forEach(function (trace) {
-      const num = trace.blockNumber;
-      if (!blocks[num]) {
-        blocks[num] = [];
-      }
-      if (trace.type !== 'reward' || !rewardBlocks[num]) {
-        blocks[num].push(trace);
-        rewardBlocks[num] = trace.type === 'reward' || rewardBlocks[num];
-      }
-    });
-    
-    data.tracesSent = null;
-    data.tracesReceived = null;
-    
-    data.blocks = [];
-    var txCounter = 0;
-    for (var block in blocks) {
-      data.blocks.push(blocks[block]);
-      txCounter++;
-    }
-    
-    if (data.source) {
-      data.name = data.source.name;
-    } else if (config.names[data.address]) {
-      data.name = config.names[data.address];
-    }
-    
-    data.blocks = data.blocks.reverse().splice(0, 100);
-    
-    res.render('account', { account: data });
-  });
-  
-});
+  }
 
-module.exports = router;
+  const totalPages = Math.ceil(account.total / 10)
+
+  const firstPage = currentPage - 1 < 1 ? 1 : currentPage - 1;
+
+  const pages = [];
+
+  for(let i = firstPage; i <= totalPages && i <= firstPage + 10; i++) {
+    pages.push(i);
+  }
+
+  console.log({totalPages})
+
+  res.render('account', {account, currentPage, pages, totalPages})
+
+})
+
+module.exports = router

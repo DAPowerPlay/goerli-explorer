@@ -1,9 +1,8 @@
 {
-     "0xe0a2bd4258d2768837baa26a28fe71dc079f84c7" : "Parity Authority",
-     "0x22ea9f6b28db76a7162054c05ed812deb2f519cd" : "Pantheon Authority",
-     "0x8b24eb4e6aae906058242d83e51fb077370c4720" : "Infura Authority",
-     "0x000000568b9b5a365eaa767d42e74ed88915c204" : "Poa Network Authority",
-     "0x4c2ae482593505f0163cdefc073e81c63cda4107" : "Nethermind Authority",
-     "0xd9a5179f091d85051d3c982785efd1455cec8699" : "Prsym Labs Authority",
-     "0xa8e8f14732658e4b51e8711931053a8a69baf2b1" : "Dapowerplay Authority"
+     "0x385a157f6cc00d980420e50cb2083054cea32e90" : "DaPowerPlay Authority",
+     "0x385bed87aa69123a53212d67c1119fe32e1619ab" : "Bitfalls Authority",
+     "0x385f164b0bf67ef3815722b9fbfe9729c5d1632e" : "FIPU Authority",
+     "0x38505e728533bf27620601f396231edb2d7c3088" : "AsyncLabs Authority",
+     "0x385fd8e4eb6f360a1a76bf27bfc03f0fbfbd6ceb" : "NodeFactory Authority",
+     "0x385ef55e292fa39cf5ffbad99f534294565519ba" : "Blockroad Authority"
 }

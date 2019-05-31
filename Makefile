@@ -9,12 +9,12 @@ start:
 ## Build dev docker images
 build:
 	@docker-compose down
-	- @docker volume rm goerli-explorer_explorer-node-modules
+	- @docker volume rm lisinski-explorer_explorer-node-modules
 	@docker-compose build
 
 ## Build dev docker images
 release:
-	@docker build -f docker/Dockerfile --build-arg NODE_ENV=production --tag dapowerplay/goerli:latest .
+	@docker build -f docker/Dockerfile --build-arg NODE_ENV=production --tag nodefactory/lisinski-explorer:latest .
 
 ## Show help screen.
 help:

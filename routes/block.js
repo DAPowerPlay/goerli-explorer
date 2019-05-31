@@ -16,7 +16,7 @@ router.get('/:block', function (req, res, next) {
 
   Promise
     .all([
-      config.providers.pantheon.send('eth_getBlockByNumber', [utils.bigNumberify(req.params.block).toHexString(), true]),
+      config.providers.parity.send('eth_getBlockByNumber', [utils.bigNumberify(req.params.block).toHexString(), true]),
       api.trace.block(req.params.block)
     ])
     .then(([block, traces]) => {

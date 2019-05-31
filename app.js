@@ -28,7 +28,7 @@ app.set('config', config);
 app.set('db', db);
 app.set('trust proxy', true);
 
-app.use(favicon(path.join(__dirname, 'public/favicon', 'favicon.ico')));
+app.use(favicon(path.join(__dirname, 'public/favicon', 'lis.png')));
 app.use(logger(config.logFormat));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
@@ -43,7 +43,8 @@ app.locals.numeral = require('numeral');
 app.locals.ethformatter = require('./utils/ethformatter.js');
 app.locals.nameformatter = new(require('./utils/nameformatter.js'))(config);
 app.locals.nodeStatus = new(require('./utils/nodeStatus.js'))();
-require('./utils/blockListener');
+app.locals.blockIndexer = require('./utils/block-indexer');
+app.locals.blockIndexer.start();
 app.locals.config = config;
 
 app.use('/', index);

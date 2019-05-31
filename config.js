@@ -7,7 +7,6 @@ var config = {
   logFormat: 'combined',
   rpc: {
     parity: process.env.RPC_URL_PARITY || 'http://parity-rpc:8545',
-    pantheon: process.env.RPC_URL_PANTHEON || 'http://pantheon-rpc:8545'
   },
   get rpcPath () {
     return this.rpc.parity
@@ -21,13 +20,12 @@ var config = {
   },
   providers: {},
   bootstrapUrl: process.env.BOOTSTRAP_URL || 'https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/simplex/bootstrap.min.css',
-  explorerName: 'Görli Block Explorer',
-  legalNoticeLink: 'https://github.com/DAPowerPlay/goerli-explorer/blob/goerli-explorer/LICENSE',
+  explorerName: 'Lisinski Block Explorer',
+  legalNoticeLink: 'https://github.com/hpoa/lisinski-explorer/blob/master/LICENSE',
   names: names
 }
 
 config.providers.parity = new ethers.providers.JsonRpcProvider(config.rpc.parity)
-config.providers.pantheon = new ethers.providers.JsonRpcProvider(config.rpc.pantheon)
 
 if (config.cache === 'redis') {
   config.redis.client = redis.createClient(config.redis.url)

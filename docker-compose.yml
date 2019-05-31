@@ -1,7 +1,7 @@
 version: '3.5'
 
 services:
-  goerli-explorer:
+  lisinski-explorer:
     restart: on-failure
     build:
       context: .
@@ -9,7 +9,7 @@ services:
     command: npm run dev
     depends_on:
       - parity-rpc
-      - pantheon-rpc
+      - redis
     volumes:
       - .:/usr/app
       - explorer-node-modules:/usr/app/node_modules
@@ -20,21 +20,18 @@ services:
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
 
   parity-rpc:
-    image: nodefactory/parity-goerly:alpine-clique-v5
-    command: --jsonrpc-cors=all --jsonrpc-port=8545 --jsonrpc-interface=0.0.0.0 --chain=goerli --tracing=on --fat-db=on --pruning=archive --base-path /home/parity/.local/share/io.parity.ethereum/
+    image: nodefactory/parity-goerli:alpine-clique-v5
+    command: --chain /home/parity/lisinski.genesis  --no-warp --jsonrpc-cors=all --jsonrpc-port=8545 --jsonrpc-interface=0.0.0.0 --tracing=on --fat-db=on --pruning=archive --base-path /home/parity/.local/share/io.parity.ethereum/
     volumes:
+      - ./lisinski.genesis:/home/parity/lisinski.genesis
       - parity-chain-data:/home/parity/.local/share/io.parity.ethereum
-
-  pantheon-rpc:
-    image: pegasyseng/pantheon:latest
-    command: --network=goerli  --rpc-http-enabled --host-whitelist=*
-    volumes:
-      - pantheon-chain-data:/var/lib/pantheon
 
   redis:
     image: redis:5-alpine
+    command: --appendonly yes
+    volumes:
+      - redis-data:/data
 
 volumes:
   explorer-node-modules:
   parity-chain-data:
-  pantheon-chain-data:

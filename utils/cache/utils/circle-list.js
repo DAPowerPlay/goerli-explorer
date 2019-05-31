@@ -1,4 +1,4 @@
-const config = require('../../config')
+const config = require('../../../config')
 const {promisify} = require('util')
 const redis = config.redis.client
 
